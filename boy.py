@@ -8,8 +8,10 @@ from sdl2 import SDL_KEYDOWN, SDLK_SPACE, SDLK_RIGHT, SDL_KEYUP, SDLK_LEFT, SDLK
 def space_down(e):
     return e[0] == 'INPUT' and e[1].type == SDL_KEYDOWN and e[1].key == SDLK_SPACE
 
+
 def a_down(e):
     return e[0] == 'INPUT' and e[1].type == SDL_KEYDOWN and e[1].key == SDLK_a
+
 
 def time_out(e):
     return e[0] == 'TIME_OUT'
@@ -31,9 +33,6 @@ def left_up(e):
     return e[0] == 'INPUT' and e[1].type == SDL_KEYUP and e[1].key == SDLK_LEFT
 
 
-
-
-
 class AutoRun:
     @staticmethod
     def enter(boy, e):
@@ -44,21 +43,25 @@ class AutoRun:
             boy.action = 1
             boy.dir = 1
         boy.frame = 0
+        boy.start_time = get_time()
 
     @staticmethod
     def exit(boy, e):
         print('AutoRun exit')
-
 
     @staticmethod
     def do(boy):
         print('AutoRun')
         boy.frame = (boy.frame + 1) % 8
         boy.x += boy.dir * 10
+
         if boy.x > 780 or boy.x < 20:
             boy.dir *= -1
             boy.action = 1 if boy.dir == 1 else 0
             boy.x += boy.dir * 10
+
+        if get_time() - boy.start_time > 5.0:
+            boy.state_machine.handle_event(('TIME_OUT', 0))
 
     @staticmethod
     def draw(boy):
@@ -152,7 +155,7 @@ class StateMachine:
             Sleep: {right_down: Run, left_down: Run, left_up: Run, right_up: Run, space_down: Idle},
             Idle: {right_down: Run, left_down: Run, left_up: Run, right_up: Run, time_out: Sleep, a_down: AutoRun},
             Run: {right_down: Idle, left_down: Idle, right_up: Idle, left_up: Idle},
-            AutoRun: {right_down: Run, left_down: Run}
+            AutoRun: {right_down: Run, left_down: Run, time_out: Idle}
         }
 
     def start(self):
@@ -167,8 +170,8 @@ class StateMachine:
                 self.cur_state.exit(self.boy, e)
                 self.cur_state = next_state
                 self.cur_state.enter(self.boy, e)
-                return True # 성공적으로 이벤트 변환
-        return False # 이벤트를 소모하지 못했다.
+                return True  # 성공적으로 이벤트 변환
+        return False  # 이벤트를 소모하지 못했다.
 
     def draw(self):
         self.cur_state.draw(self.boy)
