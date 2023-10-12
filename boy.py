@@ -2,12 +2,14 @@
 import math
 
 from pico2d import load_image, get_time
-from sdl2 import SDL_KEYDOWN, SDLK_SPACE, SDLK_RIGHT, SDL_KEYUP, SDLK_LEFT
+from sdl2 import SDL_KEYDOWN, SDLK_SPACE, SDLK_RIGHT, SDL_KEYUP, SDLK_LEFT, SDLK_a
 
 
 def space_down(e):
     return e[0] == 'INPUT' and e[1].type == SDL_KEYDOWN and e[1].key == SDLK_SPACE
 
+def a_down(e):
+    return e[0] == 'INPUT' and e[1].type == SDL_KEYDOWN and e[1].key == SDLK_a
 
 def time_out(e):
     return e[0] == 'TIME_OUT'
@@ -27,6 +29,41 @@ def left_down(e):
 
 def left_up(e):
     return e[0] == 'INPUT' and e[1].type == SDL_KEYUP and e[1].key == SDLK_LEFT
+
+
+
+
+
+class AutoRun:
+    @staticmethod
+    def enter(boy, e):
+        if boy.action == 2:
+            boy.action = 0
+            boy.dir = -1
+        elif boy.action == 3:
+            boy.action = 1
+            boy.dir = 1
+        boy.frame = 0
+
+    @staticmethod
+    def exit(boy, e):
+        print('AutoRun exit')
+
+
+    @staticmethod
+    def do(boy):
+        print('AutoRun')
+        boy.frame = (boy.frame + 1) % 8
+        boy.x += boy.dir * 10
+        if boy.x > 780 or boy.x < 20:
+            boy.dir *= -1
+            boy.action = 1 if boy.dir == 1 else 0
+            boy.x += boy.dir * 10
+
+    @staticmethod
+    def draw(boy):
+        boy.image.clip_composite_draw(boy.frame * 100, boy.action * 100, 100, 100,
+                                      0, '', boy.x, boy.y + 35, 200, 200)
 
 
 class Run:
@@ -76,6 +113,7 @@ class Sleep:
             boy.image.clip_composite_draw(boy.frame * 100, boy.action * 100, 100, 100,
                                           math.pi / 2, '', boy.x - 25, boy.y - 25, 100, 100)
 
+
 class Idle:
     @staticmethod
     def enter(boy, e):
@@ -112,8 +150,9 @@ class StateMachine:
         self.cur_state = Idle
         self.table = {
             Sleep: {right_down: Run, left_down: Run, left_up: Run, right_up: Run, space_down: Idle},
-            Idle: {right_down: Run, left_down: Run, left_up: Run, right_up: Run, time_out: Sleep},
-            Run: {right_down: Idle, left_down: Idle, right_up: Idle, left_up: Idle}
+            Idle: {right_down: Run, left_down: Run, left_up: Run, right_up: Run, time_out: Sleep, a_down: AutoRun},
+            Run: {right_down: Idle, left_down: Idle, right_up: Idle, left_up: Idle},
+            AutoRun: {right_down: Run, left_down: Run}
         }
 
     def start(self):
